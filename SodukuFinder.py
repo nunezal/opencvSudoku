@@ -26,10 +26,10 @@ cap.set(10, 100)  # brightness
 def get_rect(imgthresh):  # outputs the corner coords of biggest rectangle in thresh image
     maxarea = 0
     biggestpoly = np.array([])
-    contours, hierarchy = cv2.findContours(imgthresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    contours, hierarchy = cv2.findContours(imgthresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     for cnt in contours:
         area = cv2.contourArea(cnt)
-        if area > 2000:
+        if area > 25000:
             peri = cv2.arcLength(cnt, True)
             poly = cv2.approxPolyDP(cnt, 0.02 * peri, True)
             if area > maxarea and len(poly) == 4:
@@ -48,7 +48,6 @@ def get_reorder(poly):  # reorders the corner coordinates of polygon to match wa
     diff = np.diff(poly, axis=1)
     polynew[1] = poly[np.argmin(diff)]
     polynew[2] = poly[np.argmax(diff)]
-
     return polynew
 
 
@@ -96,6 +95,7 @@ class Sudoku:
         boarder = 4
 
         for i in range(9):
+            find = False
             for j in range(9):
                 # drawing outer digit rectangle
                 margin = 0
@@ -134,7 +134,11 @@ class Sudoku:
             for subgrid in self.success_grids:
                 if np.all(grid1[0] == subgrid[0]):
                     grid1 = subgrid
+                    find = True
                     break
+
+            if find:
+                break
 
         grid = grid1.astype(int)
         self.grid = grid
@@ -211,14 +215,13 @@ if __name__ == '__main__':
 
         # Process image
         imgGray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        clean = cv2.fastNlMeansDenoising(imgGray)
-        threshFine = cv2.adaptiveThreshold(clean, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 13, 2)
+        threshFine = cv2.adaptiveThreshold(imgGray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 19, 2)
         threshFine = 255 - threshFine
         # cv2.imshow('thresh', threshFine)
 
         # draw bounding points
         sqrPoly = get_rect(threshFine)
-        cv2.drawContours(imgContour, sqrPoly, -1, (0, 0, 255), 20)
+        # cv2.drawContours(imgContour, sqrPoly, -1, (0, 0, 255), 20)
         # cv2.imshow('contour points', imgContour)
 
         # ROI
@@ -229,7 +232,7 @@ if __name__ == '__main__':
 
             # extract grid
             thegrid, gridwboxes = Sudoku.getgrid(warpSqr)
-            cv2.imshow('testing', gridwboxes)
+            # cv2.imshow('testing', gridwboxes)
 
             # solve grid
             Sudoku.solve()
